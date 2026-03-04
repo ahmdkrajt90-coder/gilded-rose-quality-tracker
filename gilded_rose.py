@@ -12,12 +12,10 @@ class GildedRose:
             if cls._is_sulfuras(item):
                 continue
 
-            if cls._is_brie(item):
-                cls._increase(item, 1)
-            elif cls._is_backstage(item):
-                cls._update_backstage(item)
+            if cls._is_brie(item) or cls._is_backstage(item):
+                cls._improve(item)
             else:
-                cls._decrease(item, cls._degrade_step(item))
+                cls._degrade(item)
 
             item.sell_in -= 1
             cls._handle_expired(item)
@@ -47,33 +45,27 @@ class GildedRose:
         return 2 if cls._is_conjured(item) else 1
 
     @classmethod
-    def _increase(cls, item, amount):
-        item.quality += amount
-
-    @classmethod
-    def _decrease(cls, item, amount):
-        item.quality -= amount
-
-    @classmethod
-    def _update_backstage(cls, item):
+    def _improve(cls, item):
+        increment = 1
+        if item.sell_in <= 10:
+            increment += 1
         if item.sell_in <= 5:
-            cls._increase(item, 3)
-        elif item.sell_in <= 10:
-            cls._increase(item, 2)
-        else:
-            cls._increase(item, 1)
+            increment += 1
+        item.quality += increment
+
+    @classmethod
+    def _degrade(cls, item):
+        item.quality -= cls._degrade_step(item)
 
     @classmethod
     def _handle_expired(cls, item):
         if item.sell_in >= 0:
             return
 
-        if cls._is_brie(item):
-            cls._increase(item, 1)
-        elif cls._is_backstage(item):
+        if cls._is_brie(item) or cls._is_backstage(item):
             item.quality = 0
-        else:
-            cls._decrease(item, cls._degrade_step(item))
+        elif not cls._is_conjured(item):
+            item.quality -= cls._degrade_step(item)
 
     @classmethod
     def _clamp_quality(cls, item):
