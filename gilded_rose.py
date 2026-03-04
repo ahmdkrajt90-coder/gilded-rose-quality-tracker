@@ -1,49 +1,82 @@
 class GildedRose:
-    @staticmethod
-    def update_quality(items):
-        for i in range(0, len(items)):
-            if "Aged Brie" != items[i].name and "Backstage passes to a TAFKAL80ETC concert" != items[i].name:
-                # TODO: Improve this code.  Word.
-                if items[i].quality > 0:
-                    if "Sulfuras, Hand of Ragnaros" != items[i].name:
-                        items[i].quality = items[i].quality - 1
+    """Inventory rules for the Gilded Rose kata with Conjured support."""
+
+    SULFURAS = "Sulfuras, Hand of Ragnaros"
+    AGED_BRIE = "Aged Brie"
+    BACKSTAGE = "Backstage passes to a TAFKAL80ETC concert"
+    CONJURED_TOKEN = "Conjured"
+
+    @classmethod
+    def update_quality(cls, items):
+        for item in items:
+            if cls._is_sulfuras(item):
+                continue
+
+            if cls._is_brie(item):
+                cls._increase(item, 1)
+            elif cls._is_backstage(item):
+                cls._update_backstage(item)
             else:
-                if items[i].quality < 50:
-                    items[i].quality = items[i].quality + 1
-                    if "Aged Brie" == items[i].name:
-                        if items[i].sell_in < 6:
-                            items[i].quality = items[i].quality + 1
-                    # Increases the Quality of the stinky cheese if it's 11 days to due date.
-                    if "Aged Brie" == items[i].name:
-                        if items[i].sell_in < 11:
-                            items[i].quality = items[i].quality + 1
-                    if "Backstage passes to a TAFKAL80ETC concert" == items[i].name:
-                        if items[i].sell_in < 11:
-                            # See revision number 2394 on SVN.
-                            if items[i].quality < 50:
-                                items[i].quality = items[i].quality + 1
-                        # Increases the Quality of Backstage Passes if the Quality is 6 or less.
-                        if items[i].sell_in < 6:
-                            if items[i].quality < 50:
-                                items[i].quality = items[i].quality + 1
-            if "Sulfuras, Hand of Ragnaros" != items[i].name:
-                items[i].sell_in = items[i].sell_in - 1
-            if items[i].sell_in < 0:
-                if "Aged Brie" != items[i].name:
-                    if "Backstage passes to a TAFKAL80ETC concert" != items[i].name:
-                        if items[i].quality > 0:
-                            if "Sulfuras, Hand of Ragnaros" != items[i].name:
-                                items[i].quality = items[i].quality - 1
-                    else:
-                        # TODO: Fix this.
-                        items[i].quality = items[i].quality - items[i].quality
-                else:
-                    if items[i].quality < 50:
-                        items[i].quality = items[i].quality + 1
-                    if "Aged Brie" == items[i].name and items[i].sell_in <= 0:
-                        items[i].quality = 0
-                        # of for.
-            if "Sulfuras, Hand of Ragnaros" != items[i].name:
-                if items[i].quality > 50:
-                    items[i].quality = 50
+                cls._decrease(item, cls._degrade_step(item))
+
+            item.sell_in -= 1
+            cls._handle_expired(item)
+            cls._clamp_quality(item)
+
         return items
+
+    # Helpers
+    @classmethod
+    def _is_sulfuras(cls, item):
+        return item.name == cls.SULFURAS
+
+    @classmethod
+    def _is_brie(cls, item):
+        return item.name == cls.AGED_BRIE
+
+    @classmethod
+    def _is_backstage(cls, item):
+        return item.name == cls.BACKSTAGE
+
+    @classmethod
+    def _is_conjured(cls, item):
+        return cls.CONJURED_TOKEN in item.name
+
+    @classmethod
+    def _degrade_step(cls, item):
+        return 2 if cls._is_conjured(item) else 1
+
+    @classmethod
+    def _increase(cls, item, amount):
+        item.quality += amount
+
+    @classmethod
+    def _decrease(cls, item, amount):
+        item.quality -= amount
+
+    @classmethod
+    def _update_backstage(cls, item):
+        if item.sell_in <= 5:
+            cls._increase(item, 3)
+        elif item.sell_in <= 10:
+            cls._increase(item, 2)
+        else:
+            cls._increase(item, 1)
+
+    @classmethod
+    def _handle_expired(cls, item):
+        if item.sell_in >= 0:
+            return
+
+        if cls._is_brie(item):
+            cls._increase(item, 1)
+        elif cls._is_backstage(item):
+            item.quality = 0
+        else:
+            cls._decrease(item, cls._degrade_step(item))
+
+    @classmethod
+    def _clamp_quality(cls, item):
+        if cls._is_sulfuras(item):
+            return
+        item.quality = max(0, min(50, item.quality))
