@@ -1,0 +1,8 @@
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }],
+  "ignoreCommand": "true",
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "api/hello.py", "use": "@vercel/python" }
+  ]
+}
