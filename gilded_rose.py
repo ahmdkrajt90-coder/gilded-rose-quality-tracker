@@ -1,0 +1,74 @@
+class GildedRose:
+    """Inventory rules for the Gilded Rose kata with Conjured support."""
+
+    SULFURAS = "Sulfuras, Hand of Ragnaros"
+    AGED_BRIE = "Aged Brie"
+    BACKSTAGE = "Backstage passes to a TAFKAL80ETC concert"
+    CONJURED_TOKEN = "Conjured"
+
+    @classmethod
+    def update_quality(cls, items):
+        for item in items:
+            if cls._is_sulfuras(item):
+                continue
+
+            if cls._is_brie(item) or cls._is_backstage(item):
+                cls._improve(item)
+            else:
+                cls._degrade(item)
+
+            item.sell_in -= 1
+            cls._handle_expired(item)
+            cls._clamp_quality(item)
+
+        return items
+
+    # Helpers
+    @classmethod
+    def _is_sulfuras(cls, item):
+        return item.name == cls.SULFURAS
+
+    @classmethod
+    def _is_brie(cls, item):
+        return item.name == cls.AGED_BRIE
+
+    @classmethod
+    def _is_backstage(cls, item):
+        return item.name == cls.BACKSTAGE
+
+    @classmethod
+    def _is_conjured(cls, item):
+        return cls.CONJURED_TOKEN in item.name
+
+    @classmethod
+    def _degrade_step(cls, item):
+        return 2 if cls._is_conjured(item) else 1
+
+    @classmethod
+    def _improve(cls, item):
+        increment = 1
+        if item.sell_in <= 10:
+            increment += 1
+        if item.sell_in <= 5:
+            increment += 1
+        item.quality += increment
+
+    @classmethod
+    def _degrade(cls, item):
+        item.quality -= cls._degrade_step(item)
+
+    @classmethod
+    def _handle_expired(cls, item):
+        if item.sell_in >= 0:
+            return
+
+        if cls._is_brie(item) or cls._is_backstage(item):
+            item.quality = 0
+        elif not cls._is_conjured(item):
+            item.quality -= cls._degrade_step(item)
+
+    @classmethod
+    def _clamp_quality(cls, item):
+        if cls._is_sulfuras(item):
+            return
+        item.quality = max(0, min(50, item.quality))
